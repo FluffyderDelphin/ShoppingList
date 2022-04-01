@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View, FlatList, LogBox } from 'react-native';
+import { StyleSheet, Text, View, FlatList, LogBox, Button } from 'react-native';
 import { useState, useEffect } from 'react';
 const firebase = require('firebase');
 require('firebase/firestore');
@@ -26,6 +26,7 @@ export default function App() {
       .firestore()
       .collection('ShoppingList');
     const unsubscribe = referenceShoppingLists.onSnapshot(onCollectionUpdate);
+
     return () => {
       unsubscribe();
     };
@@ -44,15 +45,32 @@ export default function App() {
     setLists(newLists);
   };
 
+  const addList = () => {
+    firebase
+      .firestore()
+      .collection('ShoppingList')
+      .add({
+        name: 'TestList',
+        items: ['egg', 'pasta', 'veggies'],
+      });
+  };
+
   return (
     <View style={styles.container}>
+      <Text style={styles.text}>Firebase......</Text>
       <FlatList
         data={lists}
         renderItem={({ item }) => (
-          <Text>
+          <Text style={styles.item}>
             {item.name}: {item.items}
           </Text>
         )}
+      />
+      <Button
+        title="add Item"
+        onPress={() => {
+          addList();
+        }}
       />
     </View>
   );
@@ -63,5 +81,13 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
+    paddingTop: 50,
+  },
+  item: {
+    fontSize: 20,
+    color: 'blue',
+  },
+  text: {
+    fontSize: 30,
   },
 });
