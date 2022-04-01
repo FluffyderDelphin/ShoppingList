@@ -27,7 +27,9 @@ export default function App() {
     const referenceShoppingLists = firebase
       .firestore()
       .collection('ShoppingList');
-    const unsubscribe = referenceShoppingLists.onSnapshot(onCollectionUpdate);
+
+    const unsubscribeUser =
+      referenceShoppingListsUser.onSnapshot(onCollectionUpdate);
     const authUnsubscribe = firebase.auth().onAuthStateChanged(async (user) => {
       if (!user) {
         await firebase.auth().signInAnonymously();
@@ -42,6 +44,7 @@ export default function App() {
     return () => {
       unsubscribe();
       authUnsubscribe();
+      unsubscribeUser();
     };
   }, []);
 
@@ -53,6 +56,7 @@ export default function App() {
         id: doc.id,
         name: data.name,
         items: data.items.toString(),
+        userId: userId,
       });
     });
     setLists(newLists);
