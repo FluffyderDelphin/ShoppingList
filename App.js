@@ -16,6 +16,8 @@ LogBox.ignoreLogs(['Setting a timer']);
 
 export default function App() {
   const [lists, setLists] = useState([]);
+  const [userId, setId] = useState('');
+  const [loggesText, setLogText] = useState('');
 
   useEffect(() => {
     if (!firebase.apps.length) {
@@ -26,9 +28,20 @@ export default function App() {
       .firestore()
       .collection('ShoppingList');
     const unsubscribe = referenceShoppingLists.onSnapshot(onCollectionUpdate);
-
+    const authUnsubscribe = firebase.auth().onAuthStateChanged(async (user) => {
+      if (!user) {
+        await firebase.auth().signInAnonymously();
+      }
+      setId(user.id);
+      setLogText('Heloo There!');
+      const referenceShoppingListsUser = firebase
+        .firestore()
+        .collection('ShoppingList')
+        .where('uid', '==', userId);
+    });
     return () => {
       unsubscribe();
+      authUnsubscribe();
     };
   }, []);
 
@@ -57,7 +70,7 @@ export default function App() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.text}>Firebase......</Text>
+      <Text style={styles.text}>Firebase...... {loggesText}</Text>
       <FlatList
         data={lists}
         renderItem={({ item }) => (
