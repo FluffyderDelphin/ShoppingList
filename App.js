@@ -1,5 +1,6 @@
+import React from 'react';
 import { StyleSheet, Text, View, FlatList, LogBox, Button } from 'react-native';
-import { useState, useEffect } from 'react';
+
 const firebase = require('firebase');
 require('firebase/firestore');
 
@@ -14,41 +15,51 @@ const firebaseConfig = {
 
 LogBox.ignoreLogs(['Setting a timer']);
 
-export default function App() {
-  const [lists, setLists] = useState([]);
-  const [userId, setId] = useState('');
-  const [loggesText, setLogText] = useState('');
+class App extends React.Component {
+  constructor() {
+    super();
+    this.state = {
+      lists: [],
+      userId: 0,
+      logText: 'Loggin in...',
+    };
 
-  useEffect(() => {
     if (!firebase.apps.length) {
       firebase.initializeApp(firebaseConfig);
     }
-
-    const referenceShoppingLists = firebase
+    this.referenceShoppinglistUser = null;
+  }
+  componentDidMount() {
+    this.referenceShoppingLists.current = firebase
       .firestore()
       .collection('ShoppingList');
 
-    const unsubscribeUser =
-      referenceShoppingListsUser.onSnapshot(onCollectionUpdate);
-    const authUnsubscribe = firebase.auth().onAuthStateChanged(async (user) => {
+    this.referenceShoppinglistUser = firebase
+      .firestore()
+      .collection('Shoppinglist')
+      .where('userId', '==', this.state.userId);
+
+    this.authUnsubscribe = firebase.auth().onAuthStateChanged(async (user) => {
       if (!user) {
         await firebase.auth().signInAnonymously();
       }
-      setId(user.id);
-      setLogText('Heloo There!');
-      const referenceShoppingListsUser = firebase
-        .firestore()
-        .collection('ShoppingList')
-        .where('uid', '==', userId);
+      this.setState({
+        userId: user.userId,
+        logText: 'Logged',
+      });
     });
-    return () => {
-      unsubscribe();
-      authUnsubscribe();
-      unsubscribeUser();
-    };
-  }, []);
 
-  const onCollectionUpdate = (querySnapshot) => {
+    this.unsubscribeListUser = this.referenceShoppinglistUser.onSnapshot(
+      this.onCollectionUpdate
+    );
+  }
+
+  componentWillUnmount() {
+    this.authUnsubscribe();
+    this.unsubscribeListUser();
+  }
+
+  onCollectionUpdate = (querySnapshot) => {
     const newLists = [];
     querySnapshot.forEach((doc) => {
       let data = doc.data();
@@ -56,41 +67,44 @@ export default function App() {
         id: doc.id,
         name: data.name,
         items: data.items.toString(),
-        userId: userId,
       });
     });
-    setLists(newLists);
+    this.setState({
+      lists,
+    });
   };
 
-  const addList = () => {
+  addList = () => {
     firebase
       .firestore()
       .collection('ShoppingList')
       .add({
         name: 'TestList',
         items: ['egg', 'pasta', 'veggies'],
+        userId: this.state.userId,
       });
   };
-
-  return (
-    <View style={styles.container}>
-      <Text style={styles.text}>Firebase...... {loggesText}</Text>
-      <FlatList
-        data={lists}
-        renderItem={({ item }) => (
-          <Text style={styles.item}>
-            {item.name}: {item.items}
-          </Text>
-        )}
-      />
-      <Button
-        title="add Item"
-        onPress={() => {
-          addList();
-        }}
-      />
-    </View>
-  );
+  render() {
+    return (
+      <View style={styles.container}>
+        <Text style={styles.text}>Firebase...... {this.state.logText}</Text>
+        <FlatList
+          data={this.state.lists}
+          renderItem={({ item }) => (
+            <Text style={styles.item}>
+              {item.name}: {item.items}
+            </Text>
+          )}
+        />
+        <Button
+          title="add Item"
+          onPress={() => {
+            addList();
+          }}
+        />
+      </View>
+    );
+  }
 }
 
 const styles = StyleSheet.create({
@@ -108,3 +122,5 @@ const styles = StyleSheet.create({
     fontSize: 30,
   },
 });
+
+export default App;
